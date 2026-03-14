@@ -1,3 +1,3 @@
-package com.athena.chessanalyzer.domain/model;
+package com.athena.chessanalyzer.domain.model;
 
 public class GameAnalysis {}
