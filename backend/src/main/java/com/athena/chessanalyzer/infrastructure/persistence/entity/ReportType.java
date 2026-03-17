@@ -1,3 +1,9 @@
 package com.athena.chessanalyzer.infrastructure.persistence.entity;
 
-public class ReportType {}
+public enum ReportType {
+    SUMMARY,
+    TACTICAL,
+    OPENING,
+    PERFORMANCE,
+    CUSTOM
+}
