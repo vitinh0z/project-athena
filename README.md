@@ -115,13 +115,13 @@ Contribuições são muito bem-vindas. Se é sua primeira vez, comece pelas issu
 
 Veja o [Guia de Contribuição completo →](CONTRIBUTING.md)
 
-[![Contributors](https://contrib.rocks/image?repo=seu-usuario/chess-analyzer)](https://github.com/seu-usuario/chess-analyzer/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=seu-usuario/chess-analyzer)](https://github.com/vitinh0z/project-athena/graphs/contributors)
 
 ---
 
 ## Roadmap
 
-Acompanhe o progresso do projeto pelos [Milestones do GitHub →](https://github.com/seu-usuario/chess-analyzer/milestones)
+Acompanhe o progresso do projeto pelos [Milestones do GitHub →](https://github.com/vitinh0z/project-athena/milestones)
 
 ---
 
