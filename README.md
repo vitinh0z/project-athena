@@ -1,282 +1,140 @@
-# Chess Analyzer
+<div align="center">
 
-Aplicação web para análise de partidas de xadrez, treinamento e estudo de aberturas.
-O sistema combina um motor de xadrez local (Stockfish), dados da Lichess API e um modelo de linguagem (LLM) para oferecer análises detalhadas e explicações das jogadas.
+# ♟ Chess Analyzer
 
----
+**Analise suas partidas. Entenda seus erros. Evolua de verdade.**
 
-## Sumário
+Motor Stockfish + Lichess API + IA generativa — tudo em um só lugar, em português.
 
-- [Visão Geral da Arquitetura](#visão-geral-da-arquitetura)
-- [Stack Tecnológica](#stack-tecnológica)
-- [Componentes](#componentes)
-  - [Frontend](#frontend)
-  - [Backend](#backend)
-  - [Serviços Externos](#serviços-externos)
-  - [Persistência](#persistência)
-- [Fluxo de Dados](#fluxo-de-dados)
-- [Diagrama de Classes (Backend)](#diagrama-de-classes-backend)
-- [Como Executar](#como-executar)
-- [Variáveis de Ambiente](#variáveis-de-ambiente)
+[![CI Backend](https://github.com/seu-usuario/chess-analyzer/actions/workflows/ci-backend.yml/badge.svg)](https://github.com/seu-usuario/chess-analyzer/actions/workflows/ci-backend.yml)
+[![CI Frontend](https://github.com/seu-usuario/chess-analyzer/actions/workflows/ci-frontend.yml/badge.svg)](https://github.com/seu-usuario/chess-analyzer/actions/workflows/ci-frontend.yml)
+[![Coverage](https://codecov.io/gh/seu-usuario/chess-analyzer/branch/main/graph/badge.svg)](https://codecov.io/gh/seu-usuario/chess-analyzer)
+[![Release](https://img.shields.io/github/v/release/seu-usuario/chess-analyzer)](https://github.com/seu-usuario/chess-analyzer/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Java](https://img.shields.io/badge/Java-25-orange)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-green)](https://spring.io/projects/spring-boot)
+[![Open in GitHub Codespaces](https://img.shields.io/badge/Open%20in-Codespaces-black?logo=github)](https://codespaces.new/seu-usuario/chess-analyzer)
 
----
+<br/>
 
-## Visão Geral da Arquitetura
+<!-- Substitua pela URL do seu GIF gravado após o primeiro deploy -->
+![Chess Analyzer em ação](docs/assets/demo.gif)
 
-```mermaid
-flowchart TD
-    USER(["Usuário"])
-
-    subgraph FE["Frontend — React"]
-        BOARD["Tabuleiro Interativo"]
-        ANALYSIS_UI["Painel de Análise"]
-        TRAINING_UI["Painel de Treino"]
-    end
-
-    subgraph BE["Backend — Spring Boot / Java 21"]
-        subgraph CTRL["Controllers"]
-            CC["ChessController"]
-            UC["UserController"]
-            AC["AnalysisController"]
-        end
-
-        subgraph SVC["Services"]
-            AS["AnalysisService"]
-            ES["ExplanationService"]
-            OS["OpeningService"]
-            TS["TrainingService"]
-        end
-
-        subgraph MCP["Spring AI + MCP Orchestrator"]
-            T1["Tool: analisar_posicao()"]
-            T2["Tool: buscar_abertura()"]
-            T3["Tool: explicar_jogada()"]
-            T4["Tool: classificar_erro()"]
-        end
-    end
-
-    subgraph EXT["Serviços Externos"]
-        SF["Stockfish\nprocesso UCI local"]
-        LC["Lichess API\naberturas e puzzles"]
-        LLM["LLM API\nClaude / GPT-4o"]
-    end
-
-    subgraph DB["Persistência"]
-        PG[("PostgreSQL")]
-        RD[("Redis cache")]
-    end
-
-    USER        -- "envia FEN / PGN"     --> BOARD
-    BOARD       -- "REST / JSON"         --> CC
-    CC          --> AS
-    AS          --> MCP
-    MCP         -- "UCI"                 --> SF
-    MCP         -- "HTTP"                --> LC
-    MCP         -- "HTTP"                --> LLM
-    AS          --> ES
-    AS          --> OS
-    AC          --> TS
-    AS          -- "salva análise"       --> PG
-    UC          -- "salva partida"       --> PG
-    AS          -- "cache"               --> RD
-    ES          -- "explicação"          --> ANALYSIS_UI
-    TS          -- "puzzles e relatório" --> TRAINING_UI
-    ANALYSIS_UI -- "exibe"               --> USER
-```
+</div>
 
 ---
 
-## Stack Tecnológica
+## O que é
 
-| Camada            | Tecnologia                          |
-|-------------------|-------------------------------------|
-| Frontend          | React                               |
-| Backend           | Java 21 + Spring Boot               |
-| Orquestração IA   | Spring AI + MCP (Model Context Protocol) |
-| Motor de xadrez   | Stockfish (processo UCI local)      |
-| Aberturas/Puzzles | Lichess API                         |
-| Modelo de linguagem | Claude / GPT-4o                   |
-| Banco de dados    | PostgreSQL                          |
-| Cache             | Redis                               |
+Chess Analyzer é uma aplicação web open source para análise de partidas de xadrez. Você cola uma posição FEN ou importa um PGN completo e recebe, em segundos: a avaliação do Stockfish, a abertura identificada via Lichess e uma explicação em linguagem natural gerada por IA sobre o que aconteceu em cada lance — e por quê.
+
+Sem cadastro em plataformas externas. Sem limite de partidas. Você hospeda, você controla.
 
 ---
 
-## Componentes
+## Funcionalidades
 
-### Frontend
-
-| Componente       | Descrição                                                      |
-|------------------|----------------------------------------------------------------|
-| Tabuleiro Interativo | Interface principal para entrada de posições em FEN ou PGN |
-| Painel de Análise    | Exibe a avaliação da posição e as explicações das jogadas   |
-| Painel de Treino     | Apresenta puzzles e relatórios de progresso do usuário      |
-
-### Backend
-
-#### Controllers
-
-| Controller         | Responsabilidade                                    |
-|--------------------|-----------------------------------------------------|
-| `ChessController`  | Recebe posições (FEN/PGN) e aciona a análise        |
-| `UserController`   | Gerencia autenticação e persistência de partidas    |
-| `AnalysisController` | Gerencia histórico de análises e sessões de treino |
-
-#### Services
-
-| Service              | Responsabilidade                                              |
-|----------------------|---------------------------------------------------------------|
-| `AnalysisService`    | Coordena o pipeline de análise, aciona o MCP Orchestrator     |
-| `ExplanationService` | Gera explicações em linguagem natural para cada jogada        |
-| `OpeningService`     | Identifica e recupera informações sobre aberturas             |
-| `TrainingService`    | Seleciona puzzles e gera relatórios de treinamento            |
-
-#### MCP Orchestrator (Spring AI)
-
-| Tool                   | Descrição                                                  |
-|------------------------|------------------------------------------------------------|
-| `analisar_posicao()`   | Envia a posição ao Stockfish e retorna avaliação e variante|
-| `buscar_abertura()`    | Consulta a Lichess API para identificar a abertura jogada  |
-| `explicar_jogada()`    | Solicita ao LLM uma explicação da jogada em linguagem natural |
-| `classificar_erro()`   | Classifica erros táticos e estratégicos cometidos         |
-
-### Serviços Externos
-
-| Serviço     | Protocolo | Função                                              |
-|-------------|-----------|-----------------------------------------------------|
-| Stockfish   | UCI       | Avaliação de posições e cálculo de melhores variantes|
-| Lichess API | HTTP/REST | Base de aberturas e puzzles                         |
-| LLM API     | HTTP/REST | Geração de explicações em linguagem natural         |
-
-### Persistência
-
-| Armazenamento | Uso                                                        |
-|---------------|------------------------------------------------------------|
-| PostgreSQL    | Partidas, usuários, histórico de análises                  |
-| Redis         | Cache de análises recentes para redução de latência        |
+-  **Análise com Stockfish** — avaliação de posições FEN e partidas PGN completas, com profundidade configurável e integração nativa via Project Panama (Java 25)
+-  **Explicações por IA** — cada lance explicado em português pelo Claude ou GPT-4o, adaptado ao seu nível (iniciante, intermediário, avançado)
+-  **Identificação de aberturas** — reconhecimento automático com código ECO, nome e estatísticas de vitória via Lichess Explorer
+-  **Classificação de erros** — blunders, mistakes e inaccuracies identificados automaticamente com contexto tático e estratégico
+-  **Treino com puzzles** — puzzles selecionados com base nos seus erros mais frequentes, com dificuldade adaptativa
+-  **Relatório de progresso** — acurácia por semana, distribuição de erros e suas aberturas mais jogadas
+-  **Modo offline** — análise técnica completa mesmo sem chave de LLM configurada
 
 ---
 
-## Fluxo de Dados
+## Demo
 
-1. O usuário envia uma posição em formato **FEN** ou **PGN** pelo tabuleiro interativo.
-2. O frontend envia a requisição via **REST/JSON** para o `ChessController`.
-3. O `ChessController` delega ao `AnalysisService`, que aciona o **MCP Orchestrator**.
-4. O MCP Orchestrator executa em paralelo:
-   - Envia a posição ao **Stockfish** via protocolo UCI para obter a avaliação.
-   - Consulta a **Lichess API** para identificar a abertura.
-   - Solicita ao **LLM** uma explicação da jogada.
-5. O `AnalysisService` persiste a análise no **PostgreSQL** e armazena em cache no **Redis**.
-6. O `ExplanationService` envia a explicação para o **Painel de Análise**.
-7. O `TrainingService` gera puzzles e relatórios exibidos no **Painel de Treino**.
-8. O usuário visualiza os resultados na interface.
+<div align="center">
+
+| Análise de posição | Classificação de erros | Painel de treino |
+|---|---|---|
+| ![análise](docs/assets/screenshot-analysis.png) | ![erros](docs/assets/screenshot-errors.png) | ![treino](docs/assets/screenshot-training.png) |
+
+</div>
 
 ---
 
-## Diagrama de Classes (Backend)
+## Quick Start
 
-```mermaid
-classDiagram
-    direction TB
-
-    class ChessController {
-        +analyzePosition(fen: String) : AnalysisResponse
-        +analyzeGame(pgn: String) : AnalysisResponse
-    }
-
-    class UserController {
-        +register(dto: UserDTO) : UserResponse
-        +login(dto: LoginDTO) : TokenResponse
-        +saveGame(pgn: String) : GameResponse
-    }
-
-    class AnalysisController {
-        +getHistory(userId: Long) : List~AnalysisResponse~
-        +getTrainingReport(userId: Long) : TrainingReport
-    }
-
-    class AnalysisService {
-        -mcpOrchestrator: McpOrchestrator
-        -explanationService: ExplanationService
-        -openingService: OpeningService
-        +analyze(fen: String) : AnalysisResult
-        +analyzeGame(pgn: String) : AnalysisResult
-        +saveAnalysis(result: AnalysisResult) void
-    }
-
-    class ExplanationService {
-        -llmClient: LlmClient
-        +explain(move: Move, context: PositionContext) : String
-    }
-
-    class OpeningService {
-        -lichessClient: LichessClient
-        +identify(pgn: String) : Opening
-    }
-
-    class TrainingService {
-        -lichessClient: LichessClient
-        +getPuzzles(userId: Long) : List~Puzzle~
-        +generateReport(userId: Long) : TrainingReport
-    }
-
-    class McpOrchestrator {
-        +analisarPosicao(fen: String) : EvalResult
-        +buscarAbertura(pgn: String) : Opening
-        +explicarJogada(move: Move) : String
-        +classificarErro(move: Move) : ErrorType
-    }
-
-    ChessController    --> AnalysisService
-    AnalysisController --> TrainingService
-    AnalysisService    --> McpOrchestrator
-    AnalysisService    --> ExplanationService
-    AnalysisService    --> OpeningService
-    McpOrchestrator    --> ExplanationService
-```
-
----
-
-## Como Executar
-
-### Pré-requisitos
-
-- Java 21
-- Node.js 20+
-- Docker e Docker Compose (para PostgreSQL e Redis)
-- Stockfish instalado e disponível no PATH
-- Chave de API para Claude ou GPT-4o
-
-### Backend
+> Pré-requisitos: [Docker](https://docs.docker.com/get-docker/) e [Java 25](https://adoptium.net/).
 
 ```bash
-# Suba os serviços de infraestrutura
-docker compose up -d
+# 1. Clone e entre no projeto
+git clone https://github.com/seu-usuario/chess-analyzer.git
+cd chess-analyzer
 
-# Execute o backend
-./mvnw spring-boot:run
+# 2. Configure as variáveis de ambiente
+cp .env.example .env
+# Edite o .env com sua chave de LLM e o caminho do Stockfish
+
+# 3. Suba tudo
+make dev
 ```
 
-### Frontend
+A aplicação estará disponível em **http://localhost:5173**.
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+Quer contribuir ou configurar do zero? Veja o [Guia de Desenvolvimento →](docs/DEVELOPMENT.md)
 
-A aplicação estará disponível em `http://localhost:5173` e o backend em `http://localhost:8080`.
+Quer hospedar em produção? Veja o [Guia de Self-Hosting →](docs/SELF_HOSTING.md)
 
 ---
 
-## Variáveis de Ambiente
+## Stack
 
-Crie um arquivo `.env` na raiz do projeto backend com as seguintes variáveis:
+| Camada | Tecnologia |
+|---|---|
+| Frontend | React + TypeScript + Vite |
+| Backend | Java 25 + Spring Boot 3.5 |
+| Motor de xadrez | Stockfish via Project Panama (FFM API) |
+| Orquestração de IA | Spring AI + MCP |
+| Modelo de linguagem | Claude / GPT-4o (configurável) |
+| Aberturas e puzzles | Lichess API |
+| Banco de dados | PostgreSQL + Flyway |
+| Cache | Redis |
 
-| Variável              | Descrição                                      |
-|-----------------------|------------------------------------------------|
-| `DATABASE_URL`        | URL de conexão com o PostgreSQL                |
-| `REDIS_URL`           | URL de conexão com o Redis                     |
-| `LLM_API_KEY`         | Chave de API do provedor de LLM (Claude/OpenAI)|
-| `LLM_PROVIDER`        | Provedor do LLM: `anthropic` ou `openai`       |
-| `STOCKFISH_PATH`      | Caminho absoluto para o executável do Stockfish|
-| `LICHESS_API_TOKEN`   | Token de acesso à Lichess API (opcional)       |
+---
+
+## Documentação
+
+| Documento | Descrição |
+|---|---|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Decisões arquiteturais, diagramas e fluxo de dados |
+| [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Como rodar localmente, testes e estrutura do projeto |
+| [API.md](docs/API.md) | Endpoints REST com exemplos de request e response |
+| [SELF_HOSTING.md](docs/SELF_HOSTING.md) | Variáveis de ambiente, Docker e configuração em produção |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Como contribuir com o projeto |
+| [SECURITY.md](SECURITY.md) | Política de divulgação responsável de vulnerabilidades |
+
+---
+
+## Contribuindo
+
+Contribuições são muito bem-vindas. Se é sua primeira vez, comece pelas issues com a label [`good first issue`](https://github.com/seu-usuario/chess-analyzer/labels/good%20first%20issue).
+
+Veja o [Guia de Contribuição completo →](CONTRIBUTING.md)
+
+[![Contributors](https://contrib.rocks/image?repo=seu-usuario/chess-analyzer)](https://github.com/seu-usuario/chess-analyzer/graphs/contributors)
+
+---
+
+## Roadmap
+
+Acompanhe o progresso do projeto pelos [Milestones do GitHub →](https://github.com/seu-usuario/chess-analyzer/milestones)
+
+---
+
+## Licença
+
+Distribuído sob a licença MIT. Veja [LICENSE](LICENSE) para mais detalhes.
+
+---
+
+<div align="center">
+
+Feito com ♟ e ☕
+
+**[⭐ Deixe uma star se o projeto te ajudou](https://github.com/seu-usuario/chess-analyzer)**
+
+</div>
