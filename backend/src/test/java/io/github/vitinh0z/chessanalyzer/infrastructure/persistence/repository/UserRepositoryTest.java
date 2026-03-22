@@ -1,6 +1,7 @@
 package io.github.vitinh0z.chessanalyzer.infrastructure.persistence.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,20 +48,54 @@ class UserRepositoryTest {
     }
 
     @Test
-    void shouldFindByEmailAndCheckExists() {
+    void shouldFindById() {
+        var id = UUID.randomUUID();
+        var entity = sampleEntity("john@example.com");
+        var domain = sampleDomain("john@example.com");
+
+        when(userJpaRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(mapper.toDomain(entity)).thenReturn(domain);
+
+        var found = repository.findById(id);
+
+        assertTrue(found.isPresent());
+        assertEquals(domain, found.get());
+    }
+
+    @Test
+    void shouldReturnEmptyWhenFindByIdNotFound() {
+        var id = UUID.randomUUID();
+
+        when(userJpaRepository.findById(id)).thenReturn(Optional.empty());
+
+        var found = repository.findById(id);
+
+        assertFalse(found.isPresent());
+    }
+
+    @Test
+    void shouldFindByEmail() {
         var email = "john@example.com";
         var entity = sampleEntity(email);
         var domain = sampleDomain(email);
 
         when(userJpaRepository.findByEmail(email)).thenReturn(Optional.of(entity));
         when(mapper.toDomain(entity)).thenReturn(domain);
-        when(userJpaRepository.existsByEmail(email)).thenReturn(true);
 
         var found = repository.findByEmail(email);
-        var exists = repository.existsByEmail(email);
 
         assertTrue(found.isPresent());
         assertEquals(email, found.get().getEmail());
+    }
+
+    @Test
+    void shouldCheckIfExistsByEmail() {
+        var email = "john@example.com";
+
+        when(userJpaRepository.existsByEmail(email)).thenReturn(true);
+
+        var exists = repository.existsByEmail(email);
+
         assertTrue(exists);
     }
 
@@ -86,4 +121,5 @@ class UserRepositoryTest {
                 .build();
     }
 }
+
 

@@ -1,6 +1,7 @@
 package io.github.vitinh0z.chessanalyzer.infrastructure.persistence.mapper;
 
 import io.github.vitinh0z.chessanalyzer.domain.model.User;
+import java.util.List;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -37,7 +38,16 @@ public class UserEntityMapper {
                 .updatedAt(entity.getUpdatedAt())
                 .build();
     }
+
+    public List<User> toDomainList(
+            List<io.github.vitinh0z.chessanalyzer.infrastructure.persistence.entity.User> entities) {
+        if (entities == null || entities.isEmpty()) {
+            return List.of();
+        }
+        return entities.stream().map(this::toDomain).toList();
+    }
 }
+
 
 
 

@@ -1,6 +1,7 @@
 package io.github.vitinh0z.chessanalyzer.infrastructure.persistence.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -63,20 +64,54 @@ class GameRepositoryTest {
     }
 
     @Test
-    void shouldFindByLichessIdAndCheckExists() {
+    void shouldFindById() {
+        var id = UUID.randomUUID();
+        var entity = sampleEntity("game-by-id");
+        var domain = sampleDomain("game-by-id");
+
+        when(gameJpaRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(mapper.toDomain(entity)).thenReturn(domain);
+
+        var found = repository.findById(id);
+
+        assertTrue(found.isPresent());
+        assertEquals(domain, found.get());
+    }
+
+    @Test
+    void shouldReturnEmptyWhenFindByIdNotFound() {
+        var id = UUID.randomUUID();
+
+        when(gameJpaRepository.findById(id)).thenReturn(Optional.empty());
+
+        var found = repository.findById(id);
+
+        assertFalse(found.isPresent());
+    }
+
+    @Test
+    void shouldFindByLichessId() {
         var lichessId = "lichess-1";
         var entity = sampleEntity(lichessId);
         var domain = sampleDomain(lichessId);
 
         when(gameJpaRepository.findByLichessGameId(lichessId)).thenReturn(Optional.of(entity));
         when(mapper.toDomain(entity)).thenReturn(domain);
-        when(gameJpaRepository.existsByLichessGameId(lichessId)).thenReturn(true);
 
         var found = repository.findByLichessGameId(lichessId);
-        var exists = repository.existsByLichessGameId(lichessId);
 
         assertTrue(found.isPresent());
         assertEquals(lichessId, found.get().getLichessGameId());
+    }
+
+    @Test
+    void shouldCheckIfExistsByLichessGameId() {
+        var lichessId = "lichess-1";
+
+        when(gameJpaRepository.existsByLichessGameId(lichessId)).thenReturn(true);
+
+        var exists = repository.existsByLichessGameId(lichessId);
+
         assertTrue(exists);
     }
 
@@ -112,4 +147,5 @@ class GameRepositoryTest {
                 .build();
     }
 }
+
 
