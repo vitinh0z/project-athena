@@ -1,0 +1,6 @@
+io\github\vitinh0z\chessanalyzer\application\mapper\UserMapperTest.class
+io\github\vitinh0z\chessanalyzer\infrastructure\persistence\mapper\UserEntityMapperTest.class
+io\github\vitinh0z\chessanalyzer\infrastructure\persistence\mapper\GameEntityMapperTest.class
+io\github\vitinh0z\chessanalyzer\application\mapper\GameMapperTest.class
+io\github\vitinh0z\chessanalyzer\infrastructure\persistence\repository\GameRepositoryTest.class
+io\github\vitinh0z\chessanalyzer\infrastructure\persistence\repository\UserRepositoryTest.class
