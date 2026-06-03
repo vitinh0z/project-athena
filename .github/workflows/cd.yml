@@ -231,7 +231,7 @@ jobs:
             --fail \
             --silent \
             --show-error \
-            https://${{ secrets.DEPLOY_HOST }}/actuator/health)
+            http://${{ secrets.DEPLOY_HOST }}:8080/actuator/health)
 
           echo "Response: $response"
 
