@@ -12,13 +12,18 @@ RUN mvn package -DskipTests -B -q
 FROM eclipse-temurin:25-jre AS runtime
 WORKDIR /app
 
+# curl é necessário para o HEALTHCHECK (a imagem base não inclui wget/curl por padrão)
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends curl \
+  && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd -r appgroup && useradd -r -g appgroup -u 1001 appuser
 USER 1001
 
 COPY --from=builder /app/target/*.jar app.jar
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget -qO- http://localhost:8080/actuator/health || exit 1
+  CMD curl -fsS http://localhost:8080/actuator/health || exit 1
 
 EXPOSE 8080
 
