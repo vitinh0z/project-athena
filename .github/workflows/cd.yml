@@ -1,0 +1,279 @@
+# .github/workflows/cd.yml
+#
+# CD — Entrega Contínua
+#
+# Acionado apenas quando:
+#   1. Há um push na branch main
+#   2. O workflow de CI passou (via needs: [ci])
+#
+# Isso garante que só código testado e validado vai para produção.
+
+name: CD
+
+on:
+  # "workflow_run" dispara este workflow quando outro completa.
+  # Isso é mais robusto que "needs" entre workflows diferentes.
+  workflow_run:
+    workflows: ["CI"]        # nome exato do CI acima
+    types: [completed]
+    branches: [main]
+
+# Variáveis de ambiente globais, disponíveis em todos os jobs
+env:
+  REGISTRY: ghcr.io
+  # github.repository retorna "usuario/repositorio"
+  # ex: "vitinh0z/chess-analyzer"
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  check-ci:
+    name: Check CI Status
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: CI passed — proceeding with CD
+        run: echo "CI passed for commit ${{ github.event.workflow_run.head_sha }}"
+
+  build-and-push:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [check-ci]
+
+    # Permissões necessárias para fazer push no GHCR
+    permissions:
+      contents: read
+      packages: write    # permite publicar pacotes (imagens Docker)
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.version }}
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend
+          tags: |
+            # Tag com o SHA curto do commit (primeiros 7 caracteres)
+            # Imutável: sempre aponta para exatamente este código
+            type=sha,prefix=,format=short
+            # Tag "latest": útil para ambientes de staging
+            type=raw,value=latest
+
+
+      - name: Build and push backend image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Cache no GHCR: layers são reusadas entre builds
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:buildcache,mode=max
+
+  security-scan:
+    name: Security Scan (Trivy)
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Scan backend image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend@${{ needs.build-and-push.outputs.image-digest }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-and-push, security-scan]
+
+    environment:
+      name: production
+      url: https://seu-dominio.com   # aparece na aba "Deployments"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Create production .env file
+        run: |
+          cat > .env.prod << 'EOF'
+          GITHUB_REPOSITORY=${{ env.IMAGE_NAME }}
+          IMAGE_TAG=${{ needs.build-and-push.outputs.image-tag }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          REDIS_URL=${{ secrets.REDIS_URL }}
+          LLM_API_KEY=${{ secrets.LLM_API_KEY }}
+          LLM_PROVIDER=${{ secrets.LLM_PROVIDER }}
+          STOCKFISH_PATH=${{ secrets.STOCKFISH_PATH }}
+          LICHESS_API_TOKEN=${{ secrets.LICHESS_API_TOKEN }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          EOF
+
+
+      - name: Copy deployment files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "docker-compose.prod.yml,.env.prod"
+          target: "/opt/chess-analyzer"
+          strip_components: 0
+
+      # Executa os comandos de deploy no servidor via SSH.
+      # A sequência é: pull das novas imagens → up com zero downtime.
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e   # aborta se qualquer comando falhar
+
+            cd /opt/chess-analyzer
+
+            # Renomeia o .env copiado
+            mv .env.prod .env
+
+            # Login no GHCR a partir do servidor
+            echo "${{ secrets.GITHUB_TOKEN }}" | \
+              docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Puxa as novas imagens ANTES de parar as antigas.
+            # Isso minimiza o tempo de indisponibilidade.
+            docker compose -f docker-compose.prod.yml pull backend
+
+            # Sobe os containers com a nova imagem.
+            # "--no-deps" só recria o backend, não o postgres/redis.
+            # "--wait" espera os health checks passarem antes de retornar.
+            docker compose -f docker-compose.prod.yml up -d --no-deps --wait backend
+
+            # Remove imagens antigas para liberar espaço em disco
+            docker image prune -f
+
+            echo "Deploy completed. Running image:"
+            docker inspect chess-backend --format '{{.Config.Image}}'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # JOB 5: Smoke test pós-deploy
+  # Verifica se a aplicação está respondendo após o deploy.
+  # Se falhar, cria um GitHub Issue automaticamente.
+  # ════════════════════════════════════════════════════════════════════════
+  smoke-test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    needs: [deploy]
+
+    steps:
+      # Espera a aplicação estar pronta.
+      # O Spring Boot pode levar alguns segundos para inicializar.
+      - name: Wait for application to be ready
+        run: sleep 30
+
+      # Testa o endpoint de health do Spring Boot Actuator.
+      # --retry: tenta até 5 vezes
+      # --retry-delay: espera 10s entre tentativas
+      # --fail: retorna código de erro se HTTP status >= 400
+      - name: Health check
+        id: health-check
+        run: |
+          response=$(curl \
+            --retry 5 \
+            --retry-delay 10 \
+            --retry-connrefused \
+            --fail \
+            --silent \
+            --show-error \
+            https://${{ secrets.DEPLOY_HOST }}/actuator/health)
+
+          echo "Response: $response"
+
+          # Verifica se o status é "UP"
+          status=$(echo "$response" | python3 -c "import sys, json; print(json.load(sys.stdin)['status'])")
+          if [ "$status" != "UP" ]; then
+            echo "Health check failed: status=$status"
+            exit 1
+          fi
+
+          echo "Health check passed: status=$status"
+
+      # Se o smoke test falhar, cria uma Issue no repositório automaticamente
+      - name: Create incident issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Deploy failed — smoke test failed (${new Date().toISOString()})`,
+              body: `## Deploy Failure Report
+
+            **Commit:** ${{ github.event.workflow_run.head_sha }}
+            **Workflow:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            **Time:** ${new Date().toISOString()}
+
+            ### What happened
+            The smoke test (health check) failed after deploying commit \`${{ github.event.workflow_run.head_sha }}\`.
+
+            ### Immediate action required
+            1. Check the workflow logs above
+            2. If needed, rollback using:
+               \`\`\`bash
+               # On the server:
+               cd /opt/chess-analyzer
+               IMAGE_TAG=<previous-sha> docker compose -f docker-compose.prod.yml up -d --no-deps backend
+               \`\`\`
+
+            ### Previous working image tag
+            Check the previous successful deploy in the [Deployments tab](${{ github.server_url }}/${{ github.repository }}/deployments).
+            `,
+              labels: ['incident', 'deploy-failure']
+            })
