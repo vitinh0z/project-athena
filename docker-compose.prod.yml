@@ -11,7 +11,7 @@ services:
       SPRING_DATA_REDIS_URL: ${REDIS_URL}
       SPRING_AI_OPENAI_API_KEY: ${LLM_API_KEY}
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
