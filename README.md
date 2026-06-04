@@ -94,6 +94,28 @@ Quer hospedar em produção? Veja o [Guia de Self-Hosting →](docs/SELF_HOSTING
 
 ---
 
+## Variáveis de Ambiente
+
+Copie `.env.example` para `.env` e preencha os valores. As variáveis marcadas como **obrigatórias em prod** causam falha imediata no startup se não estiverem definidas.
+
+| Variável | Profile | Obrigatória em prod | Descrição |
+|---|---|:---:|---|
+| `DB_NAME` | dev | — | Nome do banco PostgreSQL local |
+| `DB_USER` | dev | — | Usuário PostgreSQL local (default: `chess`) |
+| `DB_PASSWORD` | dev | — | Senha PostgreSQL local (default: `chess`) |
+| `DATABASE_URL` | prod | sim | URL JDBC completa do PostgreSQL gerenciado |
+| `SPRING_DATA_REDIS_HOST` | dev | — | Host do Redis local (default: `localhost`) |
+| `SPRING_DATA_REDIS_PORT` | dev | — | Porta do Redis local (default: `6379`) |
+| `REDIS_URL` | prod | sim | URL do Redis gerenciado (`redis://...`) |
+| `LLM_API_KEY` | ambos | sim | Chave de API do provedor de LLM |
+| `LLM_PROVIDER` | ambos | — | Provedor de LLM: `openai` \| `anthropic` (default: `openai`) |
+| `STOCKFISH_PATH` | ambos | sim | Caminho absoluto do binário do Stockfish |
+| `LICHESS_API_TOKEN` | ambos | sim | Token pessoal OAuth da Lichess |
+
+> **Profile ativo:** defina `SPRING_PROFILES_ACTIVE=dev` (local) ou `SPRING_PROFILES_ACTIVE=prod` (servidor). O profile `dev` usa valores padrão para banco e Redis, permitindo subir sem todas as chaves configuradas.
+
+---
+
 ## Stack
 
 | Camada | Tecnologia |

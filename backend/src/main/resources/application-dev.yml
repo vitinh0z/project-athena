@@ -1,0 +1,26 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5432/chessanalyzer
+    username: ${DB_USER:chess}
+    password: ${DB_PASSWORD:chess}
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+app:
+  llm:
+    api-key: ${LLM_API_KEY:not-configured}
+    provider: ${LLM_PROVIDER:openai}
+  stockfish:
+    path: ${STOCKFISH_PATH:/usr/local/bin/stockfish}
+  lichess:
+    api-token: ${LICHESS_API_TOKEN:not-configured}
+    base-url: https://lichess.org
