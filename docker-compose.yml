@@ -1,56 +1,46 @@
+# Infraestrutura local de desenvolvimento — apenas postgres e redis.
+# Suba com: docker compose up -d
+# O backend e o frontend são executados fora do Docker (IDE ou terminal).
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/chessanalyzer
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_AI_OPENAI_API_KEY: ${LLM_API_KEY}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-
   postgres:
-    image: postgres:17-alpine
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
     environment:
-      POSTGRES_DB: chessanalyzer
+      POSTGRES_DB: ${DB_NAME:-chessanalyzer}
       POSTGRES_USER: ${DB_USER:-chess}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-chess}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-chess}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-chess} -d ${DB_NAME:-chessanalyzer}"]
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    networks:
+      - chess-net
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - chess-net
 
 volumes:
   postgres_data:
+  redis_data:
+
+networks:
+  chess-net:
+    driver: bridge
