@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "backend/**"
+      - ".github/workflows/ci-backend.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "backend/**"
+      - ".github/workflows/ci-backend.yml"
+
+jobs:
+  build-and-test:
+    name: Build, Test & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          # O cache do actions/setup-java usa ~/.m2 como chave baseada no pom.xml
+          cache-dependency-path: backend/pom.xml
+
+      - name: Compile, test & coverage
+        working-directory: backend
+        # verify = compile + test + jacoco:report + jacoco:check (threshold 70%)
+        run: mvn verify -B
+
+      - name: Static analysis (Checkstyle)
+        working-directory: backend
+        run: mvn checkstyle:check -B
+
+      - name: Upload JaCoCo coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-report
+          path: backend/target/site/jacoco/
+          retention-days: 14

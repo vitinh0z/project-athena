@@ -1,0 +1,30 @@
+# Compose de produção — usa imagens pré-construídas do GHCR.
+# Variáveis injetadas pelo CD pipeline via arquivo .env no servidor.
+services:
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/backend:${IMAGE_TAG}
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: ${DATABASE_URL}
+      SPRING_DATA_REDIS_URL: ${REDIS_URL}
+      SPRING_AI_OPENAI_API_KEY: ${LLM_API_KEY}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    container_name: chess-backend
+
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/frontend:${IMAGE_TAG}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+# Postgres e Redis são serviços externos em produção.
+# Utilize DATABASE_URL e REDIS_URL apontando para os serviços gerenciados.
