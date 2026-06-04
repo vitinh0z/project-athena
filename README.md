@@ -62,18 +62,31 @@ Sem cadastro em plataformas externas. Sem limite de partidas. Você hospeda, voc
 
 ```bash
 # 1. Clone e entre no projeto
-git clone https://github.com/seu-usuario/chess-analyzer.git
-cd chess-analyzer
+git clone https://github.com/vitinh0z/project-athena.git
+cd project-athena
 
 # 2. Configure as variáveis de ambiente
 cp .env.example .env
 # Edite o .env com sua chave de LLM e o caminho do Stockfish
 
-# 3. Suba tudo
-make dev
+# 3. Suba a infraestrutura local (PostgreSQL + Redis)
+docker compose up -d
+
+# Aguarde os serviços ficarem healthy (opcional — verifique com:)
+docker compose ps
+
+# 4. Rode o backend
+cd backend && mvn spring-boot:run
 ```
 
-A aplicação estará disponível em **http://localhost:5173**.
+O backend estará disponível em **http://localhost:8080**.
+
+### Parar a infraestrutura
+
+```bash
+docker compose down          # para os containers (dados preservados nos volumes)
+docker compose down -v       # para e remove os volumes (reseta o banco)
+```
 
 Quer contribuir ou configurar do zero? Veja o [Guia de Desenvolvimento →](docs/DEVELOPMENT.md)
 
