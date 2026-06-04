@@ -15,7 +15,6 @@ public class GameEntityMapper {
 
         return io.github.vitinh0z.chessanalyzer.infrastructure.persistence.entity.Game.builder()
                 .id(domain.getId())
-                .userId(domain.getUserId())
                 .lichessGameId(domain.getLichessGameId())
                 .whitePlayer(domain.getWhitePlayer())
                 .blackPlayer(domain.getBlackPlayer())
@@ -36,7 +35,6 @@ public class GameEntityMapper {
 
         return Game.builder()
                 .id(entity.getId())
-                .userId(entity.getUserId())
                 .lichessGameId(entity.getLichessGameId())
                 .whitePlayer(entity.getWhitePlayer())
                 .blackPlayer(entity.getBlackPlayer())

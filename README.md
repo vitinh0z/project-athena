@@ -58,7 +58,7 @@ Sem cadastro em plataformas externas. Sem limite de partidas. Você hospeda, voc
 
 ## Quick Start
 
-> Pré-requisitos: [Docker](https://docs.docker.com/get-docker/) e [Java 25](https://adoptium.net/).
+> Pré-requisito: [Docker](https://docs.docker.com/get-docker/).
 
 ```bash
 # 1. Clone e entre no projeto
@@ -67,25 +67,17 @@ cd project-athena
 
 # 2. Configure as variáveis de ambiente
 cp .env.example .env
-# Edite o .env com sua chave de LLM e o caminho do Stockfish
+# Edite o .env: LLM_API_KEY e LICHESS_API_TOKEN são as únicas chaves externas
 
-# 3. Suba a infraestrutura local (PostgreSQL + Redis)
-docker compose up -d
-
-# Aguarde os serviços ficarem healthy (opcional — verifique com:)
-docker compose ps
-
-# 4. Rode o backend
-cd backend && mvn spring-boot:run
+# 3. Suba tudo (backend + frontend + banco)
+docker compose up --build
 ```
 
-O backend estará disponível em **http://localhost:8080**.
-
-### Parar a infraestrutura
+A aplicação estará disponível em **http://localhost**.
 
 ```bash
-docker compose down          # para os containers (dados preservados nos volumes)
-docker compose down -v       # para e remove os volumes (reseta o banco)
+docker compose down          # para (dados preservados nos volumes)
+docker compose down -v       # para e limpa o banco
 ```
 
 Quer contribuir ou configurar do zero? Veja o [Guia de Desenvolvimento →](docs/DEVELOPMENT.md)
@@ -100,19 +92,15 @@ Copie `.env.example` para `.env` e preencha os valores. As variáveis marcadas c
 
 | Variável | Profile | Obrigatória em prod | Descrição |
 |---|---|:---:|---|
-| `DB_NAME` | dev | — | Nome do banco PostgreSQL local |
 | `DB_USER` | dev | — | Usuário PostgreSQL local (default: `chess`) |
 | `DB_PASSWORD` | dev | — | Senha PostgreSQL local (default: `chess`) |
 | `DATABASE_URL` | prod | sim | URL JDBC completa do PostgreSQL gerenciado |
-| `SPRING_DATA_REDIS_HOST` | dev | — | Host do Redis local (default: `localhost`) |
-| `SPRING_DATA_REDIS_PORT` | dev | — | Porta do Redis local (default: `6379`) |
-| `REDIS_URL` | prod | sim | URL do Redis gerenciado (`redis://...`) |
 | `LLM_API_KEY` | ambos | sim | Chave de API do provedor de LLM |
 | `LLM_PROVIDER` | ambos | — | Provedor de LLM: `openai` \| `anthropic` (default: `openai`) |
 | `STOCKFISH_PATH` | ambos | sim | Caminho absoluto do binário do Stockfish |
 | `LICHESS_API_TOKEN` | ambos | sim | Token pessoal OAuth da Lichess |
 
-> **Profile ativo:** defina `SPRING_PROFILES_ACTIVE=dev` (local) ou `SPRING_PROFILES_ACTIVE=prod` (servidor). O profile `dev` usa valores padrão para banco e Redis, permitindo subir sem todas as chaves configuradas.
+> **Profile ativo:** defina `SPRING_PROFILES_ACTIVE=dev` (IDE/terminal) ou `SPRING_PROFILES_ACTIVE=prod` (docker compose). O profile `dev` usa defaults para banco local, permitindo subir sem todas as chaves configuradas.
 
 ---
 

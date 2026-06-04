@@ -5,8 +5,6 @@ import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-
 @Getter
 @Builder
 @AllArgsConstructor
@@ -15,7 +13,6 @@ public class Analysis {
     private final UUID id;
 
     private final UUID gameId;
-    private final UUID userId;
     private final String summary;
     private final String bestMove;
     private final String worstMove;

@@ -15,7 +15,6 @@ public class GameMapper {
 
         return new GameDTO(
                 domain.getId(),
-                domain.getUserId(),
                 domain.getLichessGameId(),
                 domain.getWhitePlayer(),
                 domain.getBlackPlayer(),

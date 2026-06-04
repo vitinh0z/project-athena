@@ -13,7 +13,7 @@ public interface GameRepository {
 
     Optional<Game> findByLichessGameId(String lichessGameId);
 
-    List<Game> findByUserId(UUID userId);
+    List<Game> findAll();
 
     boolean existsByLichessGameId(String lichessGameId);
 }

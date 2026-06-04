@@ -30,9 +30,6 @@ public class Puzzle {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
-
     @Column(name = "lichess_puzzle_id", unique = true, length = 100)
     private String lichessPuzzleId;
 

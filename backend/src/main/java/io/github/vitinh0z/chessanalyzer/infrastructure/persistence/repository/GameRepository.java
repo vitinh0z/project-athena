@@ -33,8 +33,8 @@ public class GameRepository implements io.github.vitinh0z.chessanalyzer.domain.r
     }
 
     @Override
-    public List<Game> findByUserId(UUID userId) {
-        return mapper.toDomainList(gameJpaRepository.findByUserIdOrderByPlayedAtDesc(userId));
+    public List<Game> findAll() {
+        return mapper.toDomainList(gameJpaRepository.findAll());
     }
 
     @Override

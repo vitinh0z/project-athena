@@ -1,0 +1,55 @@
+Chess Analyzer
+Copyright (c) 2025 Victor Gabriel (github.com/vitinh0z)
+
+This project is licensed under the MIT License. See LICENSE for details.
+
+───────────────────────────────────────────────────────────────────────────────
+Third-Party Components
+───────────────────────────────────────────────────────────────────────────────
+
+Stockfish Chess Engine
+  Website:  https://stockfishchess.org
+  License:  GNU General Public License v3.0 (GPL-3.0)
+  Source:   https://github.com/official-stockfish/Stockfish
+  Note:     This project integrates with Stockfish via UCI protocol.
+            Stockfish is not bundled — it must be installed separately.
+
+Lichess API
+  Website:  https://lichess.org
+  License:  GNU Affero General Public License v3.0 (AGPL-3.0)
+  Docs:     https://lichess.org/api
+  Note:     This project queries the Lichess public API. No Lichess source
+            code is included or redistributed.
+
+Spring Framework / Spring Boot
+  Website:  https://spring.io
+  License:  Apache License 2.0
+  Source:   https://github.com/spring-projects/spring-boot
+
+Spring AI
+  Website:  https://spring.io/projects/spring-ai
+  License:  Apache License 2.0
+  Source:   https://github.com/spring-projects/spring-ai
+
+PostgreSQL JDBC Driver (pgjdbc)
+  Website:  https://jdbc.postgresql.org
+  License:  BSD 2-Clause License
+  Source:   https://github.com/pgjdbc/pgjdbc
+
+Lombok
+  Website:  https://projectlombok.org
+  License:  MIT License
+  Source:   https://github.com/projectlombok/lombok
+
+uuid-creator
+  Website:  https://github.com/f4b6a3/uuid-creator
+  License:  MIT License
+
+───────────────────────────────────────────────────────────────────────────────
+Attribution
+───────────────────────────────────────────────────────────────────────────────
+
+If you use, fork, or redistribute this software, please retain this NOTICE
+file and credit the original author:
+
+  Victor Gabriel — https://github.com/vitinh0z

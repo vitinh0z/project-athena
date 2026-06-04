@@ -13,7 +13,6 @@ public class Game {
 
     private final UUID id;
 
-    private final UUID userId;
     private final String lichessGameId;
     private final String whitePlayer;
     private final String blackPlayer;

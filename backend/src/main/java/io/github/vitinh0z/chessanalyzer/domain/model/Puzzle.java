@@ -13,7 +13,6 @@ public class Puzzle {
 
     private final UUID id;
 
-    private final UUID userId;
     private final String lichessPuzzleId;
     private final String fen;
     private final String solution;

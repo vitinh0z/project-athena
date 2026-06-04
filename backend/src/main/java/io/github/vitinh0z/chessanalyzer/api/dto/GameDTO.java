@@ -5,7 +5,6 @@ import java.util.UUID;
 
 public record GameDTO(
         UUID id,
-        UUID userId,
         String lichessGameId,
         String whitePlayer,
         String blackPlayer,
